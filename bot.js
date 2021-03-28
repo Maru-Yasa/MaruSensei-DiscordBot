@@ -14,9 +14,17 @@ async function getAns(q){
     return res;
 }
 
-client.on('ready', async () => {
+client.on("ready", () =>{
     console.log(`Logged in as ${client.user.tag}!`);
-});
+    client.user.setStatus('available')
+    client.user.setPresence({
+        status: "online",  
+        game: {
+            name: "Using m!help",  
+            type: "STREAMING" 
+        }
+    });
+ });
 
 
 client.on('message',async msg => {
