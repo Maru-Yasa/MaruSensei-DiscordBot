@@ -1,18 +1,30 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const { BrainlyAPI, Server } = require('brainly-api');
+// const { BrainlyAPI, Server } = require('brainly-api');
+const brainly = require('brainly-scraper-v2');
 require('dotenv').config()
+
+// async function getAns(q){
+//     var res = undefined
+//     await BrainlyAPI.startWorker({ experimental: true, server: Server.ID }, async brainly => {
+//         const result = await brainly.findQuestion(q);
+//         let array = Array.from(result)
+//         array = array[0]
+//         res = array.raw.node.answers.nodes[0].content.replace( /(<([^>]+)>)/ig, '')
+//     });
+//     return res;
+// }
 
 async function getAns(q){
     var res = undefined
-    await BrainlyAPI.startWorker({ experimental: true, server: Server.ID }, async brainly => {
-        const result = await brainly.findQuestion(q);
-        let array = Array.from(result)
-        array = array[0]
-        res = array.raw.node.answers.nodes[0].content.replace( /(<([^>]+)>)/ig, '')
-    });
+    await brainly(q,1,"id")
+        .then(response => {
+            let array = Array.from(response)
+            res = response.data[0].jawaban[0].text
+        })
     return res;
 }
+
 
 client.on("ready", () =>{
     console.log(`Logged in as ${client.user.tag}!`);
