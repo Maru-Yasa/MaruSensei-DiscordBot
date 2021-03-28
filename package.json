@@ -4,13 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev:start": "nodemon bot",
+    "start": "node bot",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.1",
     "discord.js": "^12.5.1",
+    "dotenv": "^8.2.0",
     "node-fetch": "^2.6.1"
   }
 }
