@@ -4,6 +4,15 @@ const client = new Discord.Client();
 const brainly = require('brainly-scraper-v2');
 require('dotenv').config()
 const http = require("http");
+const Setting = require('./models/setting')
+const mongoose = require('mongoose')
+
+mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true})
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error!'));
+db.once('open', function() {
+  console.log('MongoDb ok!')
+});
 
 http.createServer(function (req, res) {
   res.write('bot alive'); 
@@ -23,9 +32,9 @@ http.createServer(function (req, res) {
 // }
 
 
-async function getAns(q){
+async function getAns(q,flag){
     var res = undefined
-    await brainly(q,1,"id")
+    await brainly(q, 1, flag)
         .then(response => {
             let array = Array.from(response)
             res = response.data[0].jawaban[0].text
@@ -37,26 +46,71 @@ async function getAns(q){
 client.on("ready", () =>{
     console.log(`Logged in as ${client.user.tag}!`);
     client.user.setPresence({ activity: { name: 'Using m!help' }, status: 'idle' })
-      .then(console.log)
-      .catch(console.error);
  });
 
 
 client.on('message',async msg => {
     let author = msg.author
+
+    if (msg.channel.type === 'dm') {
+        return;
+    }
+
     if (/m!ask/i.test(msg.content) && author.bot === false) {
         let question = msg.content.split(' '),
             answer = null,
             q = null
             reply = null
+            flag = 'ID'
         question.shift()
         q = question.toString().replace(',',' ')
-        answer = await getAns(q)
-        reply = `\n **Question**:\n ${q} \n **Answers** \n ${answer}`
+        flag = await Setting.findOne({guildId:msg.guild.id},function (err,res) {
+            if (err) return 'ID';
+            return res.setting;
+        })
+        answer = await getAns(q,flag.setting)
+        reply = `\n **Question**:\n ${q.replace(',', ' ')} \n **Answers:** \n ${answer}`
         msg.reply(reply);
     }
-    if (/m!help/i.test(msg.content) && author.bot === false) {
+    else if (/m!help/i.test(msg.content) && author.bot === false) {
         msg.reply(`\n **Command** \n -m!ask <your question> \n -m!help`)
+    }
+    else if (/m!set/i.test(msg.content) && author.bot === false) {
+        let argRaw = msg.content.split(' '),
+            arg = null
+        argRaw.shift()
+        arg = argRaw.toString()
+        if (arg === 'ID' || arg === 'US') {           
+            Setting.findOne({guildId:msg.guild.id})
+                .then(data => {
+                    if (data){
+                        Setting.updateOne({guildId:msg.guild.id},{setting:arg},(err,data) => {
+                          if (err) return msg.reply(`[server]${err}`)
+                          msg.reply('Success update setting...')
+                        })
+                    }else if(!data){
+                        const setting = new Setting({
+                            guildId:msg.guild.id,
+                            setting:arg
+                        })
+                        setting.save((err,data) => {
+                            if (err) return msg.reply(`[server]${err}`)
+                            msg.reply('Success set setting...')
+                        })
+                    }
+                })
+
+
+        }else {
+            msg.reply('Avaible setting [ID,US] :)')
+        }
+    }
+    
+    else if (/m!show/i.test(msg.content) && /config/i.test(msg.content)){
+        Setting.findOne({guildId:msg.guild.id},(err,data) => {
+            if(err) return msg.reply("no config yet,create ```m!set <chose one[ID, US]>```")
+            return msg.reply(`\n ConfigId:${data._id} \n GuildId:${data.guildId} \n Language:${data.setting} `)
+        })        
     }
 
 });
