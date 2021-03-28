@@ -3,6 +3,13 @@ const client = new Discord.Client();
 // const { BrainlyAPI, Server } = require('brainly-api');
 const brainly = require('brainly-scraper-v2');
 require('dotenv').config()
+const http = require("http");
+
+http.createServer(function (req, res) {
+  res.write('bot alive'); 
+  res.end();
+}).listen(8080);
+
 
 // async function getAns(q){
 //     var res = undefined
@@ -14,6 +21,7 @@ require('dotenv').config()
 //     });
 //     return res;
 // }
+
 
 async function getAns(q){
     var res = undefined
