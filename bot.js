@@ -36,14 +36,9 @@ async function getAns(q){
 
 client.on("ready", () =>{
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setStatus('available')
-    client.user.setPresence({
-        status: "online",  
-        game: {
-            name: "Using m!help",  
-            type: "STREAMING" 
-        }
-    });
+    client.user.setPresence({ activity: { name: 'Using m!help' }, status: 'idle' })
+      .then(console.log)
+      .catch(console.error);
  });
 
 
@@ -57,11 +52,11 @@ client.on('message',async msg => {
         question.shift()
         q = question.toString().replace(',',' ')
         answer = await getAns(q)
-        reply = `\n >>> **Question**:\n ${q} \n **Answers** \n ${answer}`
+        reply = `\n **Question**:\n ${q} \n **Answers** \n ${answer}`
         msg.reply(reply);
     }
     if (/m!help/i.test(msg.content) && author.bot === false) {
-        msg.reply(`\n >>> **Command** \n -m!ask <your question> \n -m!help`)
+        msg.reply(`\n **Command** \n -m!ask <your question> \n -m!help`)
     }
 
 });
