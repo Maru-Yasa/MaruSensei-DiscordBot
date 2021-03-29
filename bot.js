@@ -1,6 +1,5 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-// const { BrainlyAPI, Server } = require('brainly-api');
 const brainly = require('brainly-scraper-v2');
 require('dotenv').config()
 const http = require("http");
@@ -35,9 +34,53 @@ http.createServer(function (req, res) {
 async function getAns(q,flag){
     var res = undefined
     await brainly(q, 1, flag)
-        .then(response => {
+        .then( async response => {
             let array = Array.from(response)
-            res = response.data[0].jawaban[0].text
+            try {
+                res = response.data[0].jawaban[0].text                
+            } catch (error) {
+                res = "I dont know :sob:"
+            }
+
+        })
+    return res;
+}
+
+async function getQuestion(q,flag){
+    var res = undefined
+    await brainly(q, 1, flag)
+        .then(async response => {
+            let array = Array.from(response)
+            try {
+                res = response.data[0].pertanyaan                
+            } catch (error) {
+                res = "I dont know :sob:"
+            }
+        })
+    return res;
+}
+
+
+async function makeGuildSetting(id){
+    var setting = new Setting({
+        guildId : id
+    })
+    setting.save((err,data) => {
+        if (err) return err;
+        return data.setting
+    })
+}
+
+async function getGuildSetting(id){
+    var res = null
+    await Setting.findOne({guildId:id})
+        .then(async data => {
+            if (data){
+                res = data.setting
+            }else{
+                var newsetting = await makeGuildSetting(id)
+                res = newsetting
+            }
         })
     return res;
 }
@@ -61,32 +104,32 @@ client.on('message',async msg => {
             answer = null,
             q = null
             reply = null
-            flag = 'ID'
+            flag = null
         question.shift()
         q = question.toString().replace(',',' ')
-        flag = await Setting.findOne({guildId:msg.guild.id},function (err,res) {
-            if (err) return 'ID';
-            return res.setting;
-        })
-        answer = await getAns(q,flag.setting)
-        reply = `\n **Question**:\n ${q.replace(',', ' ')} \n **Answers:** \n ${answer}`
+        flag = await getGuildSetting(msg.guild.id)
+        answer = await getAns(q,flag)
+        let getquestion = await getQuestion(q,flag)
+        reply = `\n **Question**:\n ${getquestion} \n **Answers:** \n ${answer}`
         msg.reply(reply);
     }
+
     else if (/m!help/i.test(msg.content) && author.bot === false) {
         msg.reply(`\n **Command** \n -m!ask <your question> \n -m!help`)
     }
+
     else if (/m!set/i.test(msg.content) && author.bot === false) {
         let argRaw = msg.content.split(' '),
             arg = null
         argRaw.shift()
         arg = argRaw.toString()
-        if (arg === 'ID' || arg === 'US') {           
+        if (arg === 'ID' || arg === 'US') {        
             Setting.findOne({guildId:msg.guild.id})
                 .then(data => {
                     if (data){
                         Setting.updateOne({guildId:msg.guild.id},{setting:arg},(err,data) => {
                           if (err) return msg.reply(`[server]${err}`)
-                          msg.reply('Success update setting...')
+                          msg.reply(`Switch to ${arg} server`)
                         })
                     }else if(!data){
                         const setting = new Setting({
@@ -95,20 +138,20 @@ client.on('message',async msg => {
                         })
                         setting.save((err,data) => {
                             if (err) return msg.reply(`[server]${err}`)
-                            msg.reply('Success set setting...')
+                            msg.reply(`Switch to ${arg} server`)
                         })
                     }
                 })
 
 
         }else {
-            msg.reply('Avaible setting [ID,US] :)')
+            msg.reply('Avaible Server [ID,US] :)')
         }
     }
     
     else if (/m!show/i.test(msg.content) && /config/i.test(msg.content)){
         Setting.findOne({guildId:msg.guild.id},(err,data) => {
-            if(err) return msg.reply("no config yet,create ```m!set <chose one[ID, US]>```")
+            if(err) return msg.reply("no config yet,create \n ```m!set <chose one[ID, US]>```")
             return msg.reply(`\n ConfigId:${data._id} \n GuildId:${data.guildId} \n Language:${data.setting} `)
         })        
     }
