@@ -61,9 +61,10 @@ async function getQuestion(q,flag){
 }
 
 
-async function makeGuildSetting(id){
+async function makeGuildSetting(id,name){
     var setting = new Setting({
-        guildId : id
+        guildId : id,
+        guildName:name
     })
     setting.save((err,data) => {
         if (err) return err;
@@ -71,14 +72,14 @@ async function makeGuildSetting(id){
     })
 }
 
-async function getGuildSetting(id){
+async function getGuildSetting(id,name){
     var res = null
     await Setting.findOne({guildId:id})
         .then(async data => {
             if (data){
                 res = data.setting
             }else{
-                var newsetting = await makeGuildSetting(id)
+                var newsetting = await makeGuildSetting(id,name)
                 res = newsetting
             }
         })
@@ -107,7 +108,7 @@ client.on('message',async msg => {
             flag = null
         question.shift()
         q = question.toString().replace(',',' ')
-        flag = await getGuildSetting(msg.guild.id)
+        flag = await getGuildSetting(msg.guild.id,msg.guild.name)
         answer = await getAns(q,flag)
         let getquestion = await getQuestion(q,flag)
         reply = `\n **Question**:\n ${getquestion} \n **Answers:** \n ${answer}`
@@ -115,7 +116,7 @@ client.on('message',async msg => {
     }
 
     else if (/m!help/i.test(msg.content) && author.bot === false) {
-        msg.reply(`\n **Command** \n -m!ask <your question> \n -m!help`)
+        msg.reply("\n **Command** \n ``` m!ask <your question> \n m!help \n m!set <country> [ID,US] \n m!show config```")
     }
 
     else if (/m!set/i.test(msg.content) && author.bot === false) {
@@ -134,7 +135,8 @@ client.on('message',async msg => {
                     }else if(!data){
                         const setting = new Setting({
                             guildId:msg.guild.id,
-                            setting:arg
+                            setting:arg,
+                            guildName:msg.guild.name
                         })
                         setting.save((err,data) => {
                             if (err) return msg.reply(`[server]${err}`)
@@ -149,7 +151,7 @@ client.on('message',async msg => {
         }
     }
     
-    else if (/m!show/i.test(msg.content) && /config/i.test(msg.content)){
+    else if (/m!show/i.test(msg.content) && /config/i.test(msg.content) && author.bot === false){
         Setting.findOne({guildId:msg.guild.id},(err,data) => {
             if(err) return msg.reply("no config yet,create \n ```m!set <chose one[ID, US]>```")
             return msg.reply(`\n ConfigId:${data._id} \n GuildId:${data.guildId} \n Language:${data.setting} `)

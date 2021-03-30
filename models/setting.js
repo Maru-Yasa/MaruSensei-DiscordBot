@@ -8,6 +8,9 @@ const settingSchema = new Schema({
     setting:{
         type:String,
         default:'ID'
+    },
+    guildName:{
+      type:String
     }
 },{timestamps:true});
 
