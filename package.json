@@ -16,6 +16,8 @@
     "brainly-scraper-v2": "^1.1.2",
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
-    "mongoose": "^5.12.2"
+    "infobox-parser": "^3.4.1",
+    "mongoose": "^5.12.2",
+    "wikijs": "^6.0.1"
   }
 }

@@ -1,9 +1,11 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const brainly = require('brainly-scraper-v2');
+const brainly = require('./brainly')
+const wiki = require('./wikipedia')
 require('dotenv').config()
 const http = require("http");
 const Setting = require('./models/setting')
+const Command = require('./models/commandModel')
 const mongoose = require('mongoose')
 
 mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true, useUnifiedTopology: true})
@@ -17,48 +19,6 @@ http.createServer(function (req, res) {
   res.write('bot alive'); 
   res.end();
 }).listen(8080);
-
-
-// async function getAns(q){
-//     var res = undefined
-//     await BrainlyAPI.startWorker({ experimental: true, server: Server.ID }, async brainly => {
-//         const result = await brainly.findQuestion(q);
-//         let array = Array.from(result)
-//         array = array[0]
-//         res = array.raw.node.answers.nodes[0].content.replace( /(<([^>]+)>)/ig, '')
-//     });
-//     return res;
-// }
-
-
-async function getAns(q,flag){
-    var res = undefined
-    await brainly(q, 1, flag)
-        .then( async response => {
-            let array = Array.from(response)
-            try {
-                res = response.data[0].jawaban[0].text                
-            } catch (error) {
-                res = "I dont know :sob:"
-            }
-
-        })
-    return res;
-}
-
-async function getQuestion(q,flag){
-    var res = undefined
-    await brainly(q, 1, flag)
-        .then(async response => {
-            let array = Array.from(response)
-            try {
-                res = response.data[0].pertanyaan                
-            } catch (error) {
-                res = "I dont know :sob:"
-            }
-        })
-    return res;
-}
 
 
 async function makeGuildSetting(id,name){
@@ -86,6 +46,15 @@ async function getGuildSetting(id,name){
     return res;
 }
 
+async function getAllCommand(){
+    var res = null
+    await Command.find({},'command usage')
+        .then(data => {
+            res = data
+        })
+    return res
+}
+
 
 client.on("ready", () =>{
     console.log(`Logged in as ${client.user.tag}!`);
@@ -100,23 +69,88 @@ client.on('message',async msg => {
         return;
     }
 
-    if (/m!ask/i.test(msg.content) && author.bot === false) {
+    if (/m!wiki/i.test(msg.content) && author.bot === false) {
         let question = msg.content.split(' '),
-            answer = null,
-            q = null
+        answer = null,
+        q = null
             reply = null
             flag = null
-        question.shift()
-        q = question.toString().replace(',',' ')
+            img = null
+            question.shift()
+        q = question.toString().replace(/[^A-Za-z\s]+/g, ' ');
         flag = await getGuildSetting(msg.guild.id,msg.guild.name)
-        answer = await getAns(q,flag)
-        let getquestion = await getQuestion(q,flag)
-        reply = `\n **Question**:\n ${getquestion} \n **Answers:** \n ${answer}`
-        msg.reply(reply);
+        answer = await wiki.getWiki(q, flag)
+        img = await wiki.getMainImg(q, flag)
+        if (typeof(answer) !== 'undefined'){
+            msg.react('✅');
+            for(let i = 0; i < answer.length; i += 2000) {
+                const toSend = answer.substring(i, Math.min(answer.length, i + 2000));
+                const reply = new Discord.MessageEmbed()
+                    .setColor('#0099ff')
+                    .setTitle(q.toUpperCase())
+                    .setAuthor('Maru-Sensei', 'https://i.imgur.com/H4nh6wQ.png')
+                    .setDescription(toSend)
+                    .setThumbnail(img)
+                    .setTimestamp()
+                    // .setFooter('Powered by Maru-sensei', 'https://i.imgur.com/H4nh6wQ.png');
+                msg.channel.send(reply)
+            }
+        }else{
+            msg.react('❌')
+            msg.reply('Not found:no_entry_sign:')
+        }
+
+
+    }
+
+    if (/m!ask/i.test(msg.content) && author.bot === false) {
+        let question = msg.content.split(' '),
+        answer = null,
+        q = null
+        reply = null
+        flag = null
+            img = null
+            question.shift()
+            q = question.toString().replace(/[^A-Za-z\s]+/g, ' ');
+        flag = await getGuildSetting(msg.guild.id,msg.guild.name)
+        answer = await brainly.getAns(q, flag)
+        question = await brainly.getQestion(q, flag)
+        if (question !== null || answer !== undefined){
+            msg.react('✅');
+            for(let i = 0; i < answer.length; i += 2000) {
+                const toSend = answer.substring(i, Math.min(answer.length, i + 2000));
+                const reply = new Discord.MessageEmbed()
+                    .setColor('#0099ff')
+                    .setTitle(question)
+                    .setAuthor('Maru-Sensei', 'https://i.imgur.com/H4nh6wQ.png')
+                    .setDescription(toSend)
+                    .setThumbnail(img)
+                    .setTimestamp()
+                    // .setFooter('Powered by Maru-sensei', 'https://i.imgur.com/H4nh6wQ.png');
+                msg.channel.send(reply)
+            }
+        }else if(typeof(answer) === 'undefined'){
+            msg.react('❌')
+            msg.reply('Not found:no_entry_sign:')
+        }
     }
 
     else if (/m!help/i.test(msg.content) && author.bot === false) {
-        msg.reply("\n **Command** \n ``` m!ask <your question> \n m!help \n m!set <country> [ID,US] \n m!show config```")
+        var command = await getAllCommand(),
+            commandStr = null
+            commandArr = []
+        command.forEach(element => {
+            commandStr = `***${element.usage}***` + ' \n ' + '`'+ element.command + '`' + ' \n '
+            commandArr.push(commandStr)
+        });
+        const reply = new Discord.MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle('\nCommand List\n')
+            .setAuthor('Maru-Sensei', 'https://i.imgur.com/H4nh6wQ.png')
+            .setDescription(commandArr)
+            .setThumbnail(null)
+            .setTimestamp()
+        msg.channel.send(reply)
     }
 
     else if (/m!set/i.test(msg.content) && author.bot === false) {
@@ -130,7 +164,7 @@ client.on('message',async msg => {
                     if (data){
                         Setting.updateOne({guildId:msg.guild.id},{setting:arg},(err,data) => {
                           if (err) return msg.reply(`[server]${err}`)
-                          msg.reply(`Switch to ${arg} server`)
+                          msg.reply(`Switch to :flag_${arg.toLowerCase()}: server`)
                         })
                     }else if(!data){
                         const setting = new Setting({
@@ -140,21 +174,31 @@ client.on('message',async msg => {
                         })
                         setting.save((err,data) => {
                             if (err) return msg.reply(`[server]${err}`)
-                            msg.reply(`Switch to ${arg} server`)
+                            msg.reply(`Switch to :flag_${arg.toLowerCase()}: server`)
                         })
                     }
                 })
 
 
         }else {
-            msg.reply('Avaible Server [ID,US] :)')
+            msg.reply('Avaible Server [ID,US]')
         }
     }
     
     else if (/m!show/i.test(msg.content) && /config/i.test(msg.content) && author.bot === false){
+        var reply = null,
+            config = null
         Setting.findOne({guildId:msg.guild.id},(err,data) => {
             if(err) return msg.reply("no config yet,create \n ```m!set <chose one[ID, US]>```")
-            return msg.reply(`\n ConfigId:${data._id} \n GuildId:${data.guildId} \n Language:${data.setting} `)
+            config = `***ConfigId*** : ${data._id} \n ***GuildId*** : ${data.guildId} \n ***Language*** : :flag_${data.setting.toLowerCase()}:`
+            reply = new Discord.MessageEmbed()
+                .setColor('#0099ff')
+                .setTitle('\nConfig\n')
+                .setAuthor('Maru-Sensei', 'https://i.imgur.com/H4nh6wQ.png')
+                .setDescription(config)
+                .setThumbnail(null)
+                .setTimestamp()
+            msg.channel.send(reply)
         })        
     }
 
