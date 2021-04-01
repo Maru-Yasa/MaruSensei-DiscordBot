@@ -58,7 +58,7 @@ async function getAllCommand(){
 
 client.on("ready", () =>{
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setPresence({ activity: { name: 'Using m!help' }, status: 'idle' })
+    client.user.setPresence({ activity: { name: 'm!help' }, status: 'idle' })
  });
 
 
