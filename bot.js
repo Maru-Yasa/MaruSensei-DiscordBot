@@ -2,6 +2,16 @@ const fs = require('fs');
 const Discord = require('discord.js');
 const { prefix } = require('./config.json');
 require('dotenv').config()
+const http = require("http");
+
+
+// NOTE:worker
+http.createServer(function (req, res) {
+  res.write('bot alive'); 
+  res.end();
+}).listen(8080);
+
+
 
 const client = new Discord.Client();
 client.commands = new Discord.Collection();
