@@ -30,6 +30,7 @@ for (const folder of commandFolders) {
 
 client.once('ready', () => {
 	console.log('Ready!');
+  client.user.setPresence({ activity: { name: 'm!help' }, status: 'idle' })
 });
 
 client.on('message', message => {
