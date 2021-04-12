@@ -27,7 +27,7 @@ module.exports = {
                     const toSend = answer.substring(i, Math.min(answer.length, i + 2000));
                     const reply = new Discord.MessageEmbed()
                         .setColor('#0099ff')
-                        .setTitle(question)
+                        .setTitle(q)            
                         .setAuthor('Maru-Sensei', 'https://i.imgur.com/H4nh6wQ.png')
                         .setDescription(toSend)
                         .setThumbnail(img)
